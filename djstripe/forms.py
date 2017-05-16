@@ -8,12 +8,11 @@
 """
 
 from django import forms
-
-from .settings import PLAN_CHOICES
+from .models import return_plan_choices
 
 
 class PlanForm(forms.Form):
-    plan = forms.ChoiceField(choices=PLAN_CHOICES)
+    plan = forms.ChoiceField(choices=return_plan_choices())
 
 
 class CancelSubscriptionForm(forms.Form):

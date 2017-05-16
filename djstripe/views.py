@@ -26,8 +26,8 @@ from .models import CurrentSubscription
 from .models import Customer
 from .models import Event
 from .models import EventProcessingException
-from .settings import PLAN_LIST
-from .settings import PAYMENT_PLANS
+from .models import return_plan_list
+from .models import return_plans
 from .settings import subscriber_request_callback
 from .settings import PRORATION_POLICY_FOR_UPGRADES
 from .settings import CANCELLATION_AT_PERIOD_END
@@ -52,7 +52,7 @@ class AccountView(LoginRequiredMixin, SelectRelatedMixin, TemplateView):
             context['subscription'] = customer.current_subscription
         except CurrentSubscription.DoesNotExist:
             context['subscription'] = None
-        context['plans'] = PLAN_LIST
+        context['plans'] = return_plan_list()
         return context
 
 
@@ -142,10 +142,10 @@ class ConfirmFormView(LoginRequiredMixin, FormValidMessageMixin, SubscriptionMix
 
     def get(self, request, *args, **kwargs):
         plan_slug = self.kwargs['plan']
-        if plan_slug not in PAYMENT_PLANS:
+        if plan_slug not in return_plans():
             return redirect("djstripe:subscribe")
 
-        plan = PAYMENT_PLANS[plan_slug]
+        plan = return_plans()[plan_slug]
         customer, created = Customer.get_or_create(
             subscriber=subscriber_request_callback(self.request))
 
@@ -158,7 +158,7 @@ class ConfirmFormView(LoginRequiredMixin, FormValidMessageMixin, SubscriptionMix
 
     def get_context_data(self, *args, **kwargs):
         context = super(ConfirmFormView, self).get_context_data(**kwargs)
-        context['plan'] = PAYMENT_PLANS[self.kwargs['plan']]
+        context['plan'] = return_plans()[self.kwargs['plan']]
         return context
 
     def post(self, request, *args, **kwargs):
@@ -215,7 +215,7 @@ class ChangePlanView(LoginRequiredMixin, FormValidMessageMixin, SubscriptionMixi
                 if PRORATION_POLICY_FOR_UPGRADES:
                     current_subscription_amount = customer.current_subscription.amount
                     selected_plan_name = form.cleaned_data["plan"]
-                    selected_plan = [plan for plan in PLAN_LIST if plan["plan"] == selected_plan_name][0]  # TODO: refactor
+                    selected_plan = [plan for plan in return_plan_list() if plan["plan"] == selected_plan_name][0]  # TODO: refactor
                     selected_plan_price = selected_plan["price"] / decimal.Decimal("100")
 
                     # Is it an upgrade?

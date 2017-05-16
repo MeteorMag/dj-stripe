@@ -6,6 +6,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 
 from .models import Customer
+from django.conf import settings
+from . import settings as djstripe_settings
 
 
 ANONYMOUS_USER_ERROR_MSG = (

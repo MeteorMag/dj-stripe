@@ -29,10 +29,64 @@ from .signals import subscription_made, cancelled, card_changed
 from .signals import webhook_processing_error
 from .stripe_objects import StripeEvent, StripeTransfer, StripeCustomer, StripeInvoice, StripeCharge, StripePlan, convert_tstamp
 
+from verse.utils.djstripe_plan_utils import DJSTRIPE_LEGACY_PLANS
+import verse
+from collections import OrderedDict
+
 logger = logging.getLogger(__name__)
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 stripe.api_version = getattr(settings, "STRIPE_API_VERSION", "2012-11-07")
+
+
+
+
+def plan_from_stripe_id(stripe_id):
+    payment_plans = return_plans()
+    plan_id = None
+
+    for key in payment_plans.keys():
+        if payment_plans[key].get("stripe_plan_id") == stripe_id:
+            plan_id = key
+
+    return plan_id
+
+
+def return_plan_choices():
+    """ Return the plan choices from the DB."""
+    plans = return_plans()
+    return [(plan, plans.get("name", plan)) for plan in plans]
+
+
+def return_plan_list():
+    """ Return the plan list from the DB."""
+    plans = return_plans()
+    PLAN_LIST = []
+    for p in plans:
+        if plans[p].get("stripe_plan_id"):
+            plan = plans[p]
+            plan['plan'] = p
+            PLAN_LIST.append(plan)
+    return PLAN_LIST
+
+
+def return_plans():
+    """ Return the plans from the DB."""
+    StripePlanModel = verse.models.StripePlan
+    new_plans = DJSTRIPE_LEGACY_PLANS
+    plans = StripePlanModel.objects.all()
+    for plan in plans:
+        new_plans[plan.stripe_plan_id] = {
+            "stripe_plan_id": str(plan.stripe_plan_id),
+            "name": plan.name,
+            "description": plan.description,
+            "price": int(float(plan.price) * 100),
+            "currency": "usd",
+            "interval": plan.interval,
+            "plan": str(plan.stripe_plan_id)
+        }
+    new_plans = OrderedDict(sorted(new_plans.items(), key=lambda t: t[1]['price']))
+    return new_plans
 
 
 @python_2_unicode_compatible
@@ -314,7 +368,7 @@ class Customer(StripeCustomer):
         if stripe_subscription:
             if current_subscription:
                 logger.debug('Updating subscription')
-                current_subscription.plan = djstripe_settings.plan_from_stripe_id(stripe_subscription.plan.id)
+                current_subscription.plan = plan_from_stripe_id(stripe_subscription.plan.id)
                 current_subscription.current_period_start = convert_tstamp(
                     stripe_subscription.current_period_start
                 )
@@ -332,7 +386,7 @@ class Customer(StripeCustomer):
                 logger.debug('Creating subscription')
                 current_subscription = CurrentSubscription.objects.create(
                     customer=self,
-                    plan=djstripe_settings.plan_from_stripe_id(stripe_subscription.plan.id),
+                    plan=plan_from_stripe_id(stripe_subscription.plan.id),
                     current_period_start=convert_tstamp(
                         stripe_subscription.current_period_start
                     ),
@@ -376,7 +430,7 @@ class Customer(StripeCustomer):
             self.sync_current_subscription()
             raise SubscriptionUpdateFailure("Customer does not have a subscription with Stripe")
         self.subscribe(
-            plan=djstripe_settings.plan_from_stripe_id(stripe_subscription.plan.id),
+            plan=plan_from_stripe_id(stripe_subscription.plan.id),
             quantity=quantity,
             charge_immediately=charge_immediately
         )
@@ -388,19 +442,19 @@ class Customer(StripeCustomer):
         Trial_days corresponds to the value specified by the selected plan
         for the key trial_period_days.
         """
-        if ("trial_period_days" in djstripe_settings.PAYMENTS_PLANS[plan]):
-            trial_days = djstripe_settings.PAYMENTS_PLANS[plan]["trial_period_days"]
+        if ("trial_period_days" in return_plans()[plan]):
+            trial_days = return_plans()[plan]["trial_period_days"]
 
         if trial_days:
             resp = stripe_customer.update_subscription(
-                plan=djstripe_settings.PAYMENTS_PLANS[plan]["stripe_plan_id"],
+                plan=return_plans()[plan]["stripe_plan_id"],
                 trial_end=timezone.now() + datetime.timedelta(days=trial_days),
                 prorate=prorate,
                 quantity=quantity
             )
         else:
             resp = stripe_customer.update_subscription(
-                plan=djstripe_settings.PAYMENTS_PLANS[plan]["stripe_plan_id"],
+                plan=return_plans()[plan]["stripe_plan_id"],
                 prorate=prorate,
                 quantity=quantity
             )
@@ -454,7 +508,7 @@ class CurrentSubscription(TimeStampedModel):
     amount = models.DecimalField(decimal_places=2, max_digits=7)
 
     def plan_display(self):
-        return djstripe_settings.PAYMENTS_PLANS[self.plan]["name"]
+        return return_plans()[self.plan]["name"]
 
     def status_display(self):
         return self.status.replace("_", " ").title()
@@ -540,7 +594,7 @@ class Invoice(StripeInvoice):
             invoice.period_end = period_end
 
             if item.get("plan"):
-                plan = djstripe_settings.plan_from_stripe_id(item["plan"]["id"])
+                plan = plan_from_stripe_id(item["plan"]["id"])
             else:
                 plan = ""
 
@@ -606,7 +660,7 @@ class InvoiceItem(TimeStampedModel):
         return "<amount={amount}, plan={plan}, stripe_id={stripe_id}>".format(amount=self.amount, plan=smart_text(self.plan), stripe_id=self.stripe_id)
 
     def plan_display(self):
-        return djstripe_settings.PAYMENTS_PLANS[self.plan]["name"]
+        return return_plans()[self.plan]["name"]
 
 
 class Charge(StripeCharge):
