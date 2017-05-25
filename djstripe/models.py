@@ -76,7 +76,7 @@ def return_plans():
     new_plans = DJSTRIPE_LEGACY_PLANS
     plans = StripePlanModel.objects.all()
     for plan in plans:
-        new_plans[plan.stripe_plan_id] = {
+        new_plans[str(plan.stripe_plan_id)] = {
             "stripe_plan_id": str(plan.stripe_plan_id),
             "name": plan.name,
             "description": plan.description,
