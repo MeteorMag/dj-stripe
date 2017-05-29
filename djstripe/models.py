@@ -82,9 +82,11 @@ def return_plans():
             "description": plan.description,
             "price": int(float(plan.price) * 100),
             "currency": "usd",
-            "interval": plan.interval,
-            "plan": str(plan.stripe_plan_id)
+            "interval": plan.interval
         }
+    # Add plan key to entire plan list.
+    for plan in new_plans:
+        new_plans[plan]['plan'] = str(plan)
     new_plans = OrderedDict(sorted(new_plans.items(), key=lambda t: t[1]['price']))
     return new_plans
 
