@@ -95,7 +95,7 @@ class Migration(migrations.Migration):
                 ('card_last_4', models.CharField(max_length=4, blank=True)),
                 ('card_kind', models.CharField(max_length=50, blank=True)),
                 ('date_purged', models.DateTimeField(null=True, editable=False)),
-                ('subscriber', models.OneToOneField(null=True, to=DJSTRIPE_UNSAFE_SUBSCRIBER_MODEL)),
+                ('subscriber', models.OneToOneField(null=True, to=DJSTRIPE_UNSAFE_SUBSCRIBER_MODEL, on_delete=models.CASCADE)),
             ],
             options={
                 'abstract': False,
@@ -248,7 +248,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='currentsubscription',
             name='customer',
-            field=models.OneToOneField(related_name='current_subscription', null=True, to='djstripe.Customer'),
+            field=models.OneToOneField(related_name='current_subscription', null=True, to='djstripe.Customer', on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='charge',
