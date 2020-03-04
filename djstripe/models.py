@@ -97,7 +97,7 @@ class EventProcessingException(TimeStampedModel):
         in the admin interface.
     """
 
-    event = models.ForeignKey("Event", null=True)
+    event = models.ForeignKey("Event", null=True, on_delete=models.CASCADE)
     data = models.TextField()
     message = models.CharField(max_length=500)
     traceback = models.TextField()
@@ -121,7 +121,7 @@ class EventProcessingException(TimeStampedModel):
 
 
 class Event(StripeEvent):
-    customer = models.ForeignKey("Customer", null=True)
+    customer = models.ForeignKey("Customer", null=True, on_delete=models.CASCADE)
     validated_message = JSONField(null=True)
     valid = models.NullBooleanField(null=True)
     processed = models.BooleanField(default=False)
@@ -183,7 +183,7 @@ class Event(StripeEvent):
 
 
 class Transfer(StripeTransfer):
-    event = models.ForeignKey(Event, related_name="transfers")
+    event = models.ForeignKey(Event, related_name="transfers", on_delete=models.CASCADE)
 
     objects = TransferManager()
 
