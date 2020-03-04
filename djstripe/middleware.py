@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from django.conf import settings
-from django.core.urlresolvers import resolve
+from django.urls import resolve
 from django.shortcuts import redirect
 
 from .utils import subscriber_has_active_subscription
