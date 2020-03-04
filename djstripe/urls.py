@@ -23,6 +23,9 @@ from . import settings as app_settings
 from . import views
 
 
+app_name = 'djstripe'
+
+
 urlpatterns = [
 
     # HTML views
