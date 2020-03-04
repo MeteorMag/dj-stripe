@@ -80,7 +80,7 @@ def return_plans():
             "stripe_plan_id": str(plan.stripe_plan_id),
             "name": plan.name,
             "description": plan.description,
-            "price": int(float(plan.price) * 100),
+            "price": int(float(plan.price.amount) * 100),
             "currency": "usd",
             "interval": plan.interval
         }
