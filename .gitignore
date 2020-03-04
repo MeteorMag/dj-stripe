@@ -37,9 +37,10 @@ nosetests.xml
 .project
 .pydevproject
 
-# Eclipse Project Files
+# Project Files
 .settings/
 .prefs
+.idea/
 
 # Sphinx
 docs/_build
